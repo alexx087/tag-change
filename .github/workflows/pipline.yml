@@ -1,0 +1,39 @@
+name: Change tag 
+
+on:
+  push:
+    paths:
+      - '.github/workflows/pipeline.yml'
+  workflow_dispatch:
+
+jobs:
+  change-tag:
+    uses: alexx087/workflows/.github/workflows/find-and-replace-text-in-file.yml@main
+    with:
+      old-text: "tag 1"
+      new-text: "tag 2"
+      file-path: "file.txt"
+      commit-message: "Change tag 1 with tag 2"
+
+  build-and-push:
+    runs-on: ubuntu-latest
+    needs: change-tag
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Pull latest changes
+      run: git pull origin main
+        
+    - name: Login to GitHub Container Registry
+      uses: docker/login-action@v3
+      with:
+        registry: ghcr.io
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
+        
+    - name: Build and push Docker image
+      run: |
+        docker build -t ghcr.io/${{ github.repository }}:${{ github.sha }} .
+        docker push ghcr.io/${{ github.repository }}:${{ github.sha }} 
